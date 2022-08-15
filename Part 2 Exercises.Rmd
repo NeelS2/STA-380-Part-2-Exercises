@@ -1,0 +1,821 @@
+---
+title: 'STA 380, Part 2: Exercises'
+authors: "Neel Sheth, Troy Austin, Amanda Nguyen, Fernando Chapa"
+date: "2022-08-03"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+# Question 1: Probability Practice
+
+### Part A:
+
+#### $$P(RC) = .3$$
+#### $$P(TC) = .7$$
+#### $$P(Y) = .65$$
+#### $$P(N) = .35$$
+#### $$P(Y|RC) = .5$$
+#### $$P(N|RC) = .5$$
+ 
+#### $$P(Y|TC)$$
+ 
+#### $$P(Y) = P(Y,TC) + P(Y,RC)$$
+#### $$P(Y) = P(Y|TC) * P(TC) + P(Y|RC) * P(RC)$$
+#### $$.65 = P(Y|TC) * .7 + .5 * .3$$
+#### $$.65 - .15 = P(Y|TC) * .7$$
+#### $$.5 / .7 = P(Y|TC)$$
+#### $$0.7142857 = P(Y|TC)$$
+
+#### The fraction of true clickers who answered yes is 0.7142857.
+
+### Part B:
+
+#### $$P(P|D) = .993$$
+#### $$P(Pc|D) = .007$$
+#### $$P(Pc|Dc) = .9999$$
+#### $$P(P|Dc) = .0001$$
+#### $$P(D) = .000025$$
+#### $$P(Dc) = 0.999975$$
+
+#### $$P(P) = P(P|D) * P(D) + P(P|Dc) * P(Dc)$$
+#### $$P(P) = .993 * .000025 + .0001 * 0.999975$$
+#### $$P(P) = 0.0001248225$$
+
+#### $$P(D|P) = (P(D) * P(P|D)) / P(P)$$
+#### $$P(D|P) = (.000025 * .993) / P(P)$$
+#### $$P(D|P) = (.000025 * .993) / 0.0001248225$$
+#### $$P(D|P) = 0.1988824$$
+
+#### If someone test positive, the probability that they have the disease is 0.1988824.
+
+# Question 2: Wrangling the Billboard Top 100
+
+### Part A:
+```{r}
+library(tidyverse)
+
+df = read.csv("billboard.csv")
+df %>% select(song, performer, weeks_on_chart) %>% 
+  group_by(song, performer) %>% 
+  summarize(count = max(weeks_on_chart)) %>% 
+  arrange(desc(count)) %>% 
+  head(10)
+```
+#### This table is showing the top 10 songs (and the song's performer) in terms of time spent on the Billboard Top 100 Chart. For example, the top song on this table is Radioactive by Imagine Dragons, with a count of 87. This means that Radioactive spent a total of 87 weeks in the Billboard Top 100 charts.
+
+### Part B:
+```{r}
+df %>% filter(year != 1958 & year != 2021) %>% 
+  group_by(year) %>% 
+  summarize(count = n_distinct(song, performer)) %>% 
+  ggplot(aes(x = year, y = count)) + geom_line(color = "red", size = 1.5) + 
+  theme_bw() + xlab("Year") + ylab("Number of Unique Songs") + 
+  labs(title = "Number of Unique Songs per Year (1959-2020)")
+
+```
+#### This chart is showing the number of unique songs that appeared in the Billboard Top 100 from 1959 to 2020. Some interesting trends do show up in the graph. For instance, there appeared to be a spike in the late 1960's, with around 830 unique songs, and a second peak in 2020, with around 800 unique songs. The trend in recent years seem to be a general upwards trend in terms of unique songs, so it is possible that in the 2020 decade, the peak could eclipse the late 1960's. Furthermore, it seems to be that the lowest diversity in the Billboard Top 100 is the late 1990's and early 2000's, with only around 400-450 unique songs per year during this time period. 
+
+### Part C:
+```{r}
+df2 = df %>% select(song, performer, weeks_on_chart) %>% 
+  filter(weeks_on_chart >= 10) %>% distinct(song, performer, .keep_all = TRUE) %>% 
+  group_by(performer) %>% count() 
+
+df2 %>% filter(n >= 30) %>% ggplot(aes(x = reorder(performer, n), y = n)) + 
+  geom_col(fill = "light green", color = "black") +
+  coord_flip() + theme_bw( )+ xlab("Number of Songs") + ylab("Artist") + 
+  labs(title = "Number of Unique 'Ten-week Hits' (min. 30)")
+
+```
+#### This chart shows the 19 musical artists in the United States who had at least 30 songs that were ten-week hits. Ten-week hits are songs that appeared on the Billboard Top 100 charts for at least 10 weeks. For example, Elton John, who is in the first place slot on this chart, had over 50 songs that were 10-week hits, so he had over 50 songs that appeared on the Billboard Top 100 charts for at least 10 weeks.
+
+# Visual Story Telling Part 1: Green Buildings
+```{r}
+
+# library packages 
+library(tidyverse)
+library(mosaic)
+library(corrplot)
+library(cowplot)
+library(RColorBrewer)
+
+# read in CSV 
+green = read.csv('greenbuildings.csv')
+attach(green)
+```
+
+### Initial reactions to the analysis:
+#### The on-staff stats guru seems to neglect to mention many variables in her calculations. For example, initial beliefs on important variables to consider include age, amenity presence, size, renovations, stories, and building quality. # The first step in order to visualize the importance of these indicators include generating plots to understand the correlations and impacts. 
+
+```{r}
+
+# Numerical and categorical - box plot 
+# plot green rating importance 
+meds = aggregate(Rent ~  green_rating, green, median)
+ggplot(data=green, aes(x=factor(green_rating), y=Rent, fill=green_rating)) + geom_boxplot()+
+  stat_summary(fun=median, colour="darkred", geom="point", 
+               shape=18, size=3,show.legend = FALSE) + 
+  geom_text(data = meds, aes(label = Rent, y = Rent - 20)) +
+  labs(x="Green Rating", y='Rent', title = 'Rent vs Green Rating',
+       fill='Green Rating')
+
+meds = aggregate(Rent ~  amenities, green, median)
+ggplot(data=green, aes(x=factor(amenities), y=Rent, fill=amenities)) + geom_boxplot()+
+  stat_summary(fun=median, colour="darkred", geom="point", 
+               shape=18, size=3,show.legend = FALSE) + 
+  geom_text(data = meds, aes(label = Rent, y = Rent - 20)) +
+  labs(x="Amenities", y='Rent', title = 'Rent vs Amenities',
+       fill='Amenities')
+
+meds = aggregate(Rent ~  renovated, green, median)
+ggplot(data=green, aes(x=factor(renovated), y=Rent, fill=renovated)) + geom_boxplot()+
+  stat_summary(fun=median, colour="darkred", geom="point", 
+               shape=18, size=3,show.legend = FALSE) + 
+  geom_text(data = meds, aes(label = Rent, y = Rent -20)) +
+  labs(x="Renovated", y='Rent', title = 'Rent vs Renovated',
+       fill='Renovated')
+
+meds = aggregate(Rent ~  class_a, green, median)
+ggplot(data=green, aes(x=factor(class_a), y=Rent, fill=class_a)) + geom_boxplot()+
+  stat_summary(fun=median, colour="darkred", geom="point", 
+               shape=18, size=3,show.legend = FALSE) + 
+  geom_text(data = meds, aes(label = Rent, y = Rent -20)) +
+  labs(x="Class A", y='Rent', title = 'Rent vs Class A',
+       fill='Class A')
+
+meds = aggregate(Rent ~  class_b, green, median)
+ggplot(data=green, aes(x=factor(class_b), y=Rent, fill=class_b)) + geom_boxplot()+
+  stat_summary(fun=median, colour="darkred", geom="point", 
+               shape=18, size=3,show.legend = FALSE) + 
+  geom_text(data = meds, aes(label = Rent, y = Rent -20)) +
+  labs(x="Class B", y='Rent', title = 'Rent vs Class B',
+       fill='Class B')
+```
+#### Upon first look, it appears that the presence of certain indicators such as building quality and green rating are important to include in calculating green building success.
+
+#### From this we can see that amenities and renovations dont have much of an impact on rent. 
+
+#### Class A buildings do have a positive impact on rent, while Class B status does not have much an impact on rent  
+
+```{r ,out.width=c('50%', '50%'), fig.show='hold', echo=FALSE}
+
+# age and rent 
+ggplot(data=green) + 
+  geom_point(mapping=aes(x=age, y=Rent, colour=green_rating))+
+  labs(x="Age", y='Rent', title = 'Green buildings: Age VS Rent',
+       color='Green building')
+
+# size and rent 
+ggplot(data=green) + 
+  geom_point(mapping=aes(x=size, y=Rent, colour=green_rating)) +
+  labs(x="Size", y='Rent', title = 'Green buildings: Size VS Rent',
+       color='Green building')
+
+# stories and rent 
+ggplot(data=green) + 
+  geom_point(mapping=aes(x=stories, y=Rent, colour=green_rating))+
+  labs(x="Stories", y='Rent', title = 'Green Buildings: Stories VS Rent',
+       color='Green Building')
+
+# age and rent for class A 
+ggplot(data=green) + 
+  geom_point(mapping=aes(x=age, y=Rent, colour=class_a))+
+  labs(x="Age", y='Rent', title = 'Class A: Age VS Rent',
+       color='Class A building')
+
+# age and rent for class B
+ggplot(data=green) + 
+  geom_point(mapping=aes(x=age, y=Rent, colour=class_b))+
+  labs(x="Age", y='Rent', title = 'Class B: Age VS Rent',
+       color='Class B building')
+
+```
+#### As expected, green buildings seem to be younger than non-green buildings as it is a new concept in building design. However, it doesnt seem to have much impact on rent.
+
+#### Size and therefore number of stories seems to have a slight correlation on rent 
+
+#### Class A buildings seem to be much younger in age than Class B buildings, which can be expected 
+
+#### Therefore, we can already conclude that the analyst failed to include these important factors (age, size, building quality - specifically Class A status)
+
+#### Now we will try to understand the impact of size on rent across all building types, and then compare these factors accross Class A and B buildings.
+ 
+
+```{r out.width=c('50%', '50%'), fig.show='hold', echo=FALSE}
+
+# Rent by building size 
+green$cut_size = cut(green$size, breaks = c(0, seq(10, 1000000, by = 100000)), labels = 0:9,right=FALSE)
+meds = aggregate(Rent ~ cut_size + green_rating, green, median)
+ggplot(data = meds, mapping = aes(y = Rent, x = cut_size ,group = green_rating, colour=green_rating)) +
+  geom_line(size=1.2) +
+  labs(x="Size (per 100k sqft)", y='Rent', title = 'Median Rent vs. Building Size',
+       fill='Green building')
+
+# Class A Buildings
+ca = subset(green, green$class_a == 1)
+
+ca$cut_size = cut(ca$size, breaks = c(0, seq(10, 1000000, by = 100000)), labels = 0:9,right=FALSE)
+meds = aggregate(Rent ~ cut_size + green_rating, ca, median)
+ggplot(data = meds, mapping = aes(y = Rent, x = cut_size ,group = green_rating, colour=green_rating)) +
+  geom_line(size=1.2)+
+  labs(x="Size (per 100k sqft)", y='Rent', title = 'Class A Median Rent: Building Sizes',
+       fill='Green building')
+
+# Non- Class A Buildings
+not_ca = subset(green, green$class_a != 1)
+not_ca$cuts_age = cut(not_ca$age, breaks = c(0, seq(10, 110, by = 10)), labels = 0:10,right=FALSE)
+
+not_ca$cut_size = cut(not_ca$size, breaks = c(0, seq(10, 1000000, by = 100000)), labels = 0:9,right=FALSE)
+meds = aggregate(Rent ~ cut_size + green_rating, not_ca, median)
+ggplot(data = meds, mapping = aes(y = Rent, x = cut_size ,group = green_rating, colour=green_rating)) +
+  geom_line(size=1.2)+
+  labs(x="Size (per 100k sqft)", y='Rent', title = 'Not Class A Median Rent: Building Sizes',
+       fill='Green building')
+```
+
+#### Across all building types, green buildings seem to accumulate higher rents (except between 650k-900k sizes) than non-green buildings. 
+
+#### From these graphs, we can view that for non-Class A buildings, the rent for green buildings does not exceed that of Class A buildings (except between 600k-700k)
+
+#### Class A green buildings appear to exceed the rent of non-green buildings a little before 400k. However, since the size of the building will be 250,000 square feet, we need to determine how much more dollars per square feet a Class A building will generate. 
+
+```{r, echo=FALSE, error=FALSE,message=FALSE}
+
+green$cuts_age = cut(green$age, breaks = c(0, seq(10, 110, by = 10)), labels = 0:10,right=FALSE)
+
+# create subset of data of only 200k-300k size buildings 
+greensize = subset(green, green$size > 200000 & green$size < 300000)
+greensize = subset(greensize, greensize$class_a == 1)
+
+meds = aggregate(Rent ~ cuts_age + green_rating, greensize, median)
+
+med1 = subset(meds, meds$green_rating == 1)
+r1 = med1[1:2,]$Rent
+
+med2 = subset(meds, meds$green_rating == 0)
+r0 = med2[1:2,]$Rent
+
+paste("How many more dollars per square foot in Class A buildings: ", (sum(r0,na.rm = T) - sum(r1, na.rm = T)) / 2)
+
+```
+#### Here we see that over a 1 year period, a Class A status building will cost about $3.49 more per square foot. 
+
+```{r, error=FALSE,message=FALSE}
+paste('Extra revenue per year for a Class A green building:', round(250000*3.49))
+
+paste("Assuming 90% occupancy, years to recuperate costs:", round(5000000/(3.49*250000*0.9),2))
+
+detach(green)
+```
+
+
+### Final Insights:
+
+#### The initial recommendation failed to consider important factors when determining whether or not a green building would be advantageous for the new Austin buidling. As seen from our analysis, Class A status (therefore younger buildings) served to be counfounding variables when determining the relationship between rent and green status. When including such indicators, the recuperation time decreases to 6.37 and extra revenue per year increases. If the developer decided to not generate a Class A building, the chances of recuperating costs is very minimal. Further, we believe its important to recognize that qualities such as amenities and renovations do not hold much impact on revenues for future endeavors. 
+
+# Visual Story Telling Part 2: Capital Metro Data
+```{r}
+library(tidyverse)
+capmetro <- read.csv("capmetro_UT.csv") 
+attach(capmetro)
+summary(capmetro)
+
+p0 <- ggplot(capmetro) + 
+  geom_point(aes(x=temperature, y=boarding)) +
+  geom_abline() +
+  facet_wrap(~month, labeller = label_both) 
+
+p0 + labs(x="Temperature", y="Boarding Count",
+          title="Boarding Count vs Temp (during Sep, Oct, and Nov)")
+```
+#### These figures represent the relationship between temperature and boarding during most of the fall semester months at UT. 
+
+#### We wanted to figure out more about this relationship due to personal experience of commuting to UT during the intense heat of fall semester. Are people more likely to take the metro bus when the temperature is higher? With these figures we were able to plot boarding count against temperature and used facet wrapping in order to show this relationship over the months of September, October, November. There is a positive relationship that can be seen in all of the months between temperature and boarding, but the month of September (which is the hottest month) really shows that there is significantly more boarding occurring at higher temperatures.
+
+```{r}
+p1 <- ggplot(capmetro) + 
+  geom_point(aes(x=temperature, y=boarding)) +
+  geom_abline() +
+  facet_grid(weekend~month, labeller = label_both) 
+
+p1 + labs(x="Temperature", y="Boarding Count",
+          title="Boarding Count vs Temp on Weekends and Weekdays (during Sep, Oct, and Nov)")
+```
+#### These figures represent the relationship between temperature and boarding on weekends versus weekdays during most of the fall semester months at UT. 
+
+#### The next and final step in our analysis was to see if the trend changed during weekends and weekdays. Are people more likely to take the metro bus on weekdays, when they have to wake up early and get to campus, regardless of the temperature? Are they more likely to walk on the weekends despite the temperature being the same as the weekdays? As the months go on and the temperature cools, does that shift the distribution or proportion of weekend to weekday riders? We found that weekends and weekdays seem to have relatively similar positive trend lines for boarding count versus temperature. Although the boarding count is lower, as there are only 2 weekend days and 5 weekday days, the overall distribution seems to remain consistent, even across the different months. The positive trend line for weekends matches that of the weekdays.
+
+# Portfolio Modeling:
+```{r}
+library(mosaic)
+library(quantmod)
+library(foreach)
+set.seed(1)
+
+# Portfolio 1 - Aggressive ETF's
+mystocks1 = c("QQQ", "VUG", "IWF", "SPYG", "XLY")
+myprices1 = getSymbols(mystocks1, from = "2017-08-08")
+
+# Adjust all the stock prices
+for(ticker in mystocks1) {
+  expr = paste0(ticker, "a = adjustOHLC(", ticker, ")")
+  eval(parse(text=expr))
+}
+
+# Combine all the returns from portfolio 1
+all_returns1 = cbind(ClCl(QQQa),
+                    ClCl(VUGa),
+                    ClCl(IWFa),
+                    ClCl(SPYGa),
+                    ClCl(XLYa))
+all_returns1 = as.matrix(na.omit(all_returns1))
+
+# Bootstrap resampling to estimate the 20-day VaR
+initial_wealth = 100000
+sim1 = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns1, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker[today] = total_wealth
+  }
+  wealthtracker
+}
+
+# Profit/loss histogram
+hist(sim1[,n_days]- initial_wealth, breaks=30, xlab = "Profit/Loss", main = "Histogram of Profit/Loss vs. Estimation Frequency")
+
+
+# 5% VaR
+quantile(sim1[,n_days]- initial_wealth, prob=0.05)
+
+# Portfolio 2 - Diversified Portfolio ETF's
+mystocks2 = c("AOR", "HNDL", "NTSX", "TAIL", "YYY")
+myprices2 = getSymbols(mystocks2, from = "2017-08-08")
+
+# Adjust all the stock prices
+for(ticker in mystocks2) {
+  expr = paste0(ticker, "a = adjustOHLC(", ticker, ")")
+  eval(parse(text=expr))
+}
+
+# Combine all the returns from portfolio 2
+all_returns2 = cbind(ClCl(AORa),
+                    ClCl(HNDLa),
+                    ClCl(NTSXa),
+                    ClCl(TAILa),
+                    ClCl(YYYa))
+all_returns2 = as.matrix(na.omit(all_returns2))
+
+# Bootstrap resampling to estimate the 20-day VaR
+initial_wealth = 100000
+sim2 = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns2, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker[today] = total_wealth
+  }
+  wealthtracker
+}
+
+# Profit/loss histogram
+hist(sim2[,n_days]- initial_wealth, breaks=30, xlab = "Profit/Loss", main = "Histogram of Profit/Loss vs. Estimation Frequency")
+
+# 5% VaR
+quantile(sim2[,n_days]- initial_wealth, prob=0.05)
+
+# Portfolio 3 - Value ETF's
+mystocks3 = c("HDV", "VLUE", "DFIV", "FDL", "CDC")
+myprices3 = getSymbols(mystocks3, from = "2017-08-08")
+
+# Adjust all the stock prices
+for(ticker in mystocks3) {
+  expr = paste0(ticker, "a = adjustOHLC(", ticker, ")")
+  eval(parse(text=expr))
+}
+
+# Combine all the returns from portfolio 1
+all_returns3 = cbind(ClCl(HDVa),
+                    ClCl(VLUEa),
+                    ClCl(DFIVa),
+                    ClCl(FDLa),
+                    ClCl(CDCa))
+all_returns3 = as.matrix(na.omit(all_returns3))
+
+# Bootstrap resampling to estimate the 20-day VaR
+initial_wealth = 100000
+sim3 = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns3, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker[today] = total_wealth
+  }
+  wealthtracker
+}
+
+# Profit/loss histogram
+hist(sim3[,n_days]- initial_wealth, breaks=30, xlab = "Profit/Loss", main = "Histogram of Profit/Loss vs. Estimation Frequency")
+
+# 5% VaR
+quantile(sim3[,n_days]- initial_wealth, prob=0.05)
+```
+#### For this portfolio modeling, we decided to use 3 different types of ETF portfolios. The first portfolio (P1) includes aggressive, high growth ETF's. This contains popular ETF's like QQQ and VUG, among others. The second portfolio (P2) has some safer market ETF's, as these ETF's are more diversified through various sectors. Examples of ETF's in this second portfolio are AOR and HNDL. Finally, the third portfolio (P3) is characterized by value ETF's, which are ETF's which look to invest in the stocks of companies that are trading below their percieved intrinsic worth. Using the bootstrap method, we were able to simulate the estimation of the profit/loss of the given portfolio over the 4 week time period many, many times. After doing so, we were able to plot histograms of the profit/loss versus the estimation frequency for each of the three portfolios, as well as get the 5% value at risk. The 5% value at risk (VaR) for P1 is 9645.113, 3965.588 for P2, and 6709.737 for P3. The 5% VaR is saying that there is a 95% chance that loss will not exceed the given number over the time period (4 weeks or 20 trading days). From our results, we can see that P2 is the safest portfolio if one was trying to be as risk-averse as possible, which makes sense as this is the diversified ETF portfolio. The VaR shows that the loss should be by far the least among the portfolios, and the histogram backs that up. P1 has the chance to make the most money by far, but also the chance to lose the most, which makes sense, considering that it is a collection of aggressive high growth ETF's. P3 is somewhat in the middle of the two others, as seen by both the VaR and the histogram, but that is not too surprising as P3 contains value ETF's, which often can contain as many companies that don't achieve their percieved intrinsic values as those that do. Overall, depending on the type of investor one is, this portfolio modeling shows three various options of ETF portfolios to invest in, and could be used to help someone make their choice when it comes to ETF investing.
+
+# Clustering and PCA
+
+#### Approach: We will do K-means clustering and PCA to see which method performs best in separating the wine's color and quality.
+```{r}
+library(stats)
+library(dplyr)
+library(ggplot2)
+library(ggfortify)
+library(factoextra)
+install.packages("factoextra")
+wine = read.csv('wine.csv', header=TRUE)
+wine$quality.binary = ifelse(wine$quality>5, "Good", "Bad") # 0=good quality, 1 = bad quality
+
+### Center and scale the data
+X = wine[,(1:11)]
+X = scale(X, center=TRUE, scale=TRUE)
+view(X)
+
+wssplot <- function(data, nc=15, seed=1234){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers=i)$withinss)}
+  
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")
+  wss
+}
+
+wssplot(X)
+
+#K-Means
+KM = kmeans(X,2)
+autoplot(KM, X, frame=TRUE)
+
+#Evaluate for quality
+KM.clusters = KM$cluster
+rownames(X) = paste(wine$quality.binary, 1:dim(wine)[1], sep = "_")
+fviz_cluster(list(data=X, cluster = KM.clusters))
+
+
+#Evaluate for color
+rownames(X) = paste(wine$color, 1:dim(wine)[1], sep = "_")
+fviz_cluster(list(data=X, cluster = KM.clusters))
+```
+#### Following the code above, we read in the file, and created a binary variable for wine quality where a score of more than 5 is considered good quality and anything else is bad. We then centered and scaled the data, followed by a wssplot function to find the optimal number of clusters. As seen in the image, the "elbow" appears at 3 clusters but we will use 2 clusters since we are trying to separate the wine's color and quality into just 2 groups.From there, we perform our K-means and generate our autoplot to see the initial results, shown below. There is slight overalpp between the clusters but overall it is decent. Per the resulting cluster plots, we can see that the clustering technique isn't very good at distinguishing between wine quality but it does a great job with the wine color.
+
+#### PCA approach
+```{r}
+wine = read.csv('wine.csv', header=TRUE)
+
+
+# Center and scale the data
+X = wine[,(1:11)]
+X = scale(X, center=TRUE, scale=TRUE)
+#X$quality.binary = ifelse(wine$quality>5, TRUE, FALSE) # 0=good quality, 1 = bad quality
+#X$color.binary = ifelse(wine$color == "red", "0", "1") # 0=red, 1=white
+#X=subset(X, select=-c(quality,color))
+#X=X[,(1:12)]
+head(X)
+dim((X))
+colnames(X)
+
+pr.out = prcomp(X, scale = TRUE)
+summary(pr.out)
+plot(pr.out$x[,1], pr.out$x[,2])
+
+##scree plot
+pr.out.var <- pr.out$sdev^2
+pr.out.var.per <- round(pr.out.var/sum(pr.out.var)*100, 1)
+
+barplot(pr.out.var.per, main="Scree Plot", xlab="Principal Component", ylab="Percent Variation")
+
+names(pr.out)
+pr.out$center
+pr.out$scale
+pr.out$rotation
+pr.out$x
+
+biplot(pr.out, scale = 0)
+qplot(pr.out$x[,1], pr.out$x[,2], color=wine$color)
+qplot(pr.out$x[,1], pr.out$x[,2], color=wine$quality)
+```
+Following the code above, we began with the same steps as before, performed the prcomp() command and generate the following plot. This plot wasn't too helpful since it just show the relationship between the first and second principal components but we used data from it to make a scree plot to see what percent variability each PC accounted for. These results were the same to the clustering percentages for the first two PC's at 27.5% and 22.7%. Now that we have our PCA data, we created aa biplot for all the variables. Since there were so many data points it is quite crowded but it shows how the features that are clustered together are the most similar - for example free.sulfur.dioxide and total.sulfure dioxide, or fixed acidity and chlorides. Lastly, we created qplots based on wine color and quality as shown below. In these qplots, we can see that the PCA method also predicts wine color very well but has trouble distinguishing quality. Finally, we made quality binary and plotted the results which confirmed this method wasn't great at distinguishing good from bad quality wine.
+
+#### Final Insight:
+Although both produced similar results for us, based on the plots and the data, the K-means clustering dimensionality reduction techniques makes the most sense for this data as it generated better separation between the two clusters in both wine quality and color.
+
+# Market Segmentation
+
+#### Approach: We will create some simple correlation plots between the variables to get some initial insight into the data. Then, we will implement K-means clustering to find the best way to group these variables together, find the maximum used category for each cluster and then go back to the correlation plot to find what variables to group it with.
+```{r}
+library(tidyverse)  
+library(cluster)  
+library(factoextra)
+library(NbClust)
+library(corrplot)
+library(gridExtra)
+library(fpc)
+
+sm = read.csv('social_marketing.csv', header=TRUE)
+
+corr = round(cor(sm[,2:37]), 2)
+corrplot(corr)
+
+# Center and scale the data
+Y = sm[,(2:37)]
+Y = na.omit(Y)
+#Y = scale(Y, center = TRUE, scale =TRUE)
+Y = sapply( Y, as.numeric)
+view(Y)
+
+mu = attr(Y,"scaled:center")
+sigma = attr(Y,"scaled:scale")
+
+wssplot <- function(data, nc=15, seed=1234){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers=i)$withinss)}
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")
+  wss
+}
+
+wssplot(Y)
+
+#K-Means
+KM = kmeans(Y,6)
+
+#Evaluate for quality
+autoplot(KM, Y, frame=TRUE)
+plotcluster(Y, KM$cluster)
+
+meantweets = aggregate(Y, by=list(cluster = KM$cluster), mean)
+meantweets = meantweets[,-c(1,2)]
+meantweets = as.data.frame(meantweets)
+
+clust=colnames(meantweets)[apply(meantweets,1,which.max)]
+impfeatures = cbind(rownames(meantweets), clust)
+impfeatures
+```
+
+#### Analysis:
+
+#### Beginning with the correlation plot, we can quickly find categories that have very a strong correlation. Some examples that stand out are the following:
+#### Politics - Travel
+#### Shopping - Photo Sharing
+#### College Uni - Online Gaming
+#### Religion - Sports Fandom
+#### Beauty - Cooking
+#### Personal Fitness - Health Nutrition
+
+#### Following the correlation plot, we began our K-means analysis by centeric and scaling the data, recording our scaled mu and sigma variables and generating a wssplot to find the optimal number of clusters. As shown in the image above, the "elbow" is at the number 6 so that is how many clusters we will create in K-means. We performed the K-means analysis and plotted two initial graphs as shown above. From both of the plots above, we see that the 6 clusters have significant overlap but are still distinct enough to find some commonalities among them. To figure out which exact categories belong to each cluster, we found the mean number of categories per cluster and then found the max. This allowed us to assign one "max" category, which we named "impfeatures", to each cluster to begin our grouping. The top features for each cluster are shown above. Because cluster 3 and 5 had the same top feature, we will join those together and only present 5 final clusters. Now that we have these top features per cluster, we went back to the correlation plot to find other categories similar to the max category and that is how we generated our final results.
+
+#### Final Insight
+
+#### The five market segments we identified are the following.
+#### 1. The mid-lifers - Sports fandom, food, family, religion, parenting, school - These would be people in the 28-40 range, that is either finishing a long education or has begun their family life. They are interested in being good parents, finding good education for their children, and optimizing their family relations. On the weekends they enjoy getting together with other couples for meals and sports watching.
+
+#### 2. The physically active - Health Nutrition, outdoors, personal fitness - This is the fit group! They are very active, enjoy working out, and hiking/being outdoors.
+
+#### 3. The socially active - Photo Sharing, shopping, cooking, fashion, beauty - These are people who are active on several social media platforms, and enjoy creative/artistic focused hobbies such as cooking and fashion. They spend hours on social media every day and love TikTok.
+
+#### 4. The young adults -  College Uni, online gaming, sports playing - These are those in the 16-25 range who are in highschool or college, play sports frequently and like to game on the weekends.
+
+#### 5. The business men and women - Politics, travel, news, computers, automotive - This group is a slight wildcard, with it being the working folks that are interested in the latest news and upcoming gadgets. They like to keep up with politics, enjoy traveling for both work and pleasure and have some hobbies such as being computer geeks or automotive enthusiasts.
+
+#### By defining these market segments, we have been able to categorize 22 of the 36 categories into meaningful cluster that the company can use to optimize their advertising in several different niche groups of people.
+
+# The Reuters Corpus
+
+#### Installing required packages 
+```{r}
+# install.packages('tm')
+# install.packages('dplyr')
+# install.packages('slam')
+# install.packages('magrittr')
+# install.packages('proxy')
+# install.packages('caret')
+# install.packages('ggplot2')
+# install.packages('tibble')
+# library(tm)
+# library(dplry)
+# library(slam)
+# library(magrittr)
+# library(proxy)
+# library(caret)
+# library(ggplot2)
+# library(tidyverse)
+```
+
+
+```{r, error=FALSE,message=FALSE}
+# Iterate through the files to get the Author names and files
+
+# readerPlain = function(fname){
+#   readPlain(elem=list(content=readLines(fname)), 
+#             id=fname, language='en') }
+# 
+# setwd('data/ReutersC50')
+# # Train Data
+# train = Sys.glob('ReutersC50/C50train.txt')
+# 
+# train_list = character()
+# labels = NULL
+# 
+# for (name in train){
+#   author_file = Sys.glob(paste(name, '/*txt', sep = ''))
+#   train_list = append(train_list, author_file)
+#   names = substring(name, first = 21)
+#   labels = append(labels, rep(names, length(author_file)))
+# }
+# 
+# train_set = lapply(train_list, readerPlain)
+# names(train_set) = train_list
+# 
+# 
+# # Test data
+# test = Sys.glob('ReutersC50/C50test/*')
+# 
+# test_list = character()
+# labels = NULL
+# 
+# for (name in test){
+#   author_file = Sys.glob(paste(name, '/*txt', sep = ''))
+#   train_list = append(train_list, author_file)
+#   names = substring(name, first = 28)
+#   labels = append(labels, rep(names, length(author_file)))
+# }
+# 
+# test_set = lapply(test_list, readerPlain)
+# names(test_set) = test_list
+# 
+# # Renaming Training data
+# 
+# train_names = train_list %>%
+#   { strsplit(., '/', fixed = TRUE) } %>%
+#   { lapply(., tail, n = 2) } %>%
+#   { lapply(., paste0, collapse = '') } %>%
+#   unlist
+# 
+# # Renaming Testing Data
+# 
+# test_names = test_list %>%
+#   { strsplit(., '/', fixed=TRUE) } %>%
+#   { lapply(., tail, n=2) } %>%
+#   { lapply(., paste0, collapse = '') } %>%
+#   unlist
+```
+
+#### Pre-processing: Create Document Term Matrix and TF-IDF matrix for both training and testing set 
+#### - Create corpus
+#### - Make characters lowercase, remove numbers, punctuations, stopwords and white spaces
+
+```{r, error=FALSE,message=FALSE}
+# atrain_corp = Corpus(VectorSource(train_set))
+# 
+# atrain_corp = tm_map(atrain_corp, content_transformer(tolower)) 
+# atrain_corp = tm_map(atrain_corp, content_transformer(removeNumbers)) 
+# atrain_corp = tm_map(atrain_corp, content_transformer(removePunctuation)) 
+# atrain_corp = tm_map(atrain_corp, content_transformer(stripWhitespace)) 
+# atrain_corp = tm_map(atrain_corp, content_transformer(removeWords), stopwords("en"))
+# 
+# # Test Set 
+# atest_corp = Corpus(VectorSource(test_set))
+# 
+# atest_corp = tm_map(atest_corp, content_transformer(tolower)) 
+# atest_corp = tm_map(atest_corp, content_transformer(removeNumbers)) 
+# atest_corp = tm_map(atest_corp, content_transformer(removePunctuation)) 
+# atest_corp = tm_map(atest_corp, content_transformer(stripWhitespace)) 
+# atest_corp = tm_map(atest_corp, content_transformer(removeWords), stopwords("en"))
+# 
+# # Remove Sparse Items
+# train_DTM = DocumentTermMatrix(atrain_corp)
+# train_DTM = removeSparseTerms(train_DTM, 0.95)
+# train_DTM
+# 
+# # Test Data
+# test_DTM = DocumentTermMatrix(atest_corp, control = list(dictionary=colnames(train_DTM)))
+# test_DTM
+```
+
+#### Running PCA
+```{r, echo=FALSE, warning= FALSE, message = FALSE}
+
+# # Train Data 
+# pca.train = prcomp(TFIDF, scale=TRUE)
+# results = summary(pca.train)$importance[3,]
+# plot(results, ylab = "Variance Explained (as %)", xlab = "Principal Components" )  
+```
+
+#### We experienced various different errors while trying to import and read the RC50 data set despite many troubleshooting attempts and in the end we could not produce an output of figures for this problem. However, we had a good idea of what we wanted to accomplish with this data and the question we wanted to answer. Can we find common ground between these different authors in their writing style and content that can place them into different categories? Ideally these categories would be like different subsections of a newspaper: American politics, Chinese politics, economics, technology, etc.. The most simple way to achieve this would be to perform principal component analysis in order to find the similarities and differences in writing content between these different authors. 
+
+#### We would have first produced a PCA scree plot which would let us know how much variation each principal components can capture for this data set, and then we could determine which PCs to focus on for the analysis. A PCA biplot would then be produced for the data which would plot vectors for each author against how they scored for PC1 and PC2. This PCA biplot would allow us to interpret which authors can be grouped with one another based on their similar scores for the respective principal components. The authors' vectors that are very close to one another or clustered together are very likely to be writing about similar topics and they could be grouped under the same category of news. In order to confirm our findings, we can look further into how each author scored for each principal component so we can determine the category or 'ingredients' that these componets represent like we discussed in class. If this idea were to be full fleshed out and properly operating, it could be a very useful tool that sifts through text and auto-tags articles by authors based on its topic relevance whether it be politics, technology, or economics.
+
+# Association Rule Mining
+```{r}
+groceries = read.transactions("groceries.txt", format="basket", sep=",")
+
+summary(groceries)
+
+size = size(groceries)  
+frequency = itemFrequency(groceries)
+
+itemFrequencyPlot(groceries, topN=10) 
+image(groceries[1:100])
+```
+#### First, we did some quick exploratory analyisis, and found the top 10 most common items. Whole milk is in over 25% of all transactions, with vegetables, rolls/buns, soda, and yogurt all being in between 15-20% of all transactions. We also checked the number of items in each of the first 100 transactions, to try and get a sense of the distribution of the number of items. We found that the distribution seems to be pretty spread out, with an equal number of transactions having 25, 50, 100, and over 150 items.
+
+```{r}
+groceryrules = apriori(groceries, 
+                     parameter=list(support=.005, confidence=.1, maxlen=4))
+
+inspect(groceryrules)
+inspect(subset(groceryrules, subset=lift > 5))
+inspect(subset(groceryrules, subset=confidence > 0.6))
+inspect(subset(groceryrules, subset=lift > 10 & confidence > 0.5))
+
+summary(groceryrules)
+plot(groceryrules)
+plot(groceryrules, measure = c("support", "lift"), shading = "confidence")
+plot(groceryrules, method='two-key plot')
+```
+#### First, we looked at rules with support > .005 & confidence >.1 & length <= 4, just to get a sort of baseline. Turns out there were a lot of rules - 1582 to be exact. This tends to happen with very low support, as you only need a very small percentage of the transactions to include a particular set of items for it to be considered for a rule.
+
+```{r}
+groceryrules2 <- apriori(groceries, parameter = list(support = 0.03, confidence = 0.3, minlen = 2))  
+summary(groceryrules2)  
+inspect(groceryrules2[1:14])
+par(family = 'STKaiti')
+groceryrules2 %>% plot() 
+par(family = 'STKaiti')
+groceryrules2 %>% head(10) %>% 
+  plot(., method = "graph")
+```
+#### Next, we looked at rules with support > .03 & confidence >.3 & length >= 2, to see how increased support and confidence effected the results. With this set of parameters, there were only 14 rules, much better than the 1500+ rules from the previous parameters. Some interesting rules that seem like common sense are root vegetables -> other vegetables (self explanatory), sausage -> rolls/buns (to make hot dogs), and various dairy products -> whole milk (this implies that the customer is not lactose intolerant).
+
+```{r}
+groceryrules3 <- apriori(groceries, parameter = list(support = 0.05, confidence = 0.2, minlen = 2))  
+summary(groceryrules3)  
+inspect(groceryrules3[1:6])  
+par(family = 'STKaiti')
+groceryrules3 %>% plot() 
+par(family = 'STKaiti')
+groceryrules3 %>% head(10) %>% 
+  plot(., method = "graph")
+```
+#### Then, we looked at rules with support > .05 & confidence >.2 & length >= 2, to see how increased support and decreased confidence effected the results. With this set of parameters, there were only 6 rules, less than the 14 with the previous parameters, likely due to the support needing to be higher. Some interesting rules are yougurt -> milk, and vice versa, rolls/buns -> milk, and vice versa, and vegetables -> milk, and vice versa. Since these are some of the most common items that were in the transactions, and there are only 6 rules (3 being inverse of the other 3), it is safe to say that these parameters are too strict in order to delve deep into the dataset to find hidden rules.
+
+```{r}
+groceryrules4 <- apriori(groceries, parameter = list(support = 0.01, confidence = 0.5, minlen = 2))  
+summary(groceryrules4)  
+inspect(groceryrules4[1:10])
+par(family = 'STKaiti')
+groceryrules4 %>% plot()
+par(family = 'STKaiti')
+groceryrules4 %>% head(10) %>% 
+  plot(., method = "graph")
+```
+#### Finally, we looked at rules with support > .01 & confidence >.5 & length >= 2, to see how decreased support and increased confidence effected the results. With this set of parameters, there were only 10 rules, less than the 14 and more than the 6 with the previous parameters. This is the first set of paramters that has given us rules with more than a 1 -> 1 rule. Some interesting rules are curd and yogurt -> milk (customers who enjoy dairy), citrus fruit and root vegetables -> other vegetables (probably more health conscious customers), and eggs and other vegetables -> milk (probably customers who eat breakfast often).
+
+#### Overall, each set of parameters has its own pros and cons, but the last set we tried was the best of the 4. These item sets make sense logically, and has more depth to it than parameters with lower confidence and more support.
+
+
+
+
+
